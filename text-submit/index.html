@@ -151,13 +151,12 @@
       status.className = "status loading";
 
       try {
-        const res = await fetch(WORKER_URL, {
+        await fetch(WORKER_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({ name, text, timestamp }),
         });
-
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
         document.getElementById("name").value  = "";
         document.getElementById("entry").value = "";
