@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick Note Widget</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .widget {
+      width: 280px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: white;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .widget-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #500000;
+      margin-bottom: 2px;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #999;
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+      display: block;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      border: 1.5px solid #e5e5e5;
+      border-radius: 8px;
+      outline: none;
+      color: #333;
+      background: #fafafa;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      border-color: #500000;
+      background: white;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    button {
+      width: 100%;
+      padding: 9px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      color: #fff;
+      background: #500000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      margin-top: 2px;
+    }
+
+    button:hover {
+      background: #3a0000;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      font-size: 12px;
+      min-height: 16px;
+      text-align: center;
+    }
+
+    .status.success { color: #16a34a; }
+    .status.error   { color: #dc2626; }
+    .status.loading { color: #888; }
+  </style>
+</head>
+<body>
+  <div class="widget">
+    <div class="widget-title">Add quick note</div>
+
+    <div>
+      <label for="name">Your name</label>
+      <input type="text" id="name" placeholder="Your name" />
+    </div>
+
+    <div>
+      <label for="entry">Note</label>
+      <textarea id="entry" placeholder="Type something..."></textarea>
+    </div>
+
+    <button id="submitBtn" onclick="submitNote()">Submit</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------
+    // CONFIGURATION — update this after deploying your Worker
+    // -------------------------------------------------------
+    const WORKER_URL = "https://YOUR_WORKER.YOUR_SUBDOMAIN.workers.dev";
+    // -------------------------------------------------------
+
+    async function submitNote() {
+      const name  = document.getElementById("name").value.trim();
+      const text  = document.getElementById("entry").value.trim();
+      const status = document.getElementById("status");
+      const btn   = document.getElementById("submitBtn");
+
+      if (!name || !text) {
+        status.textContent = "Please fill in both fields.";
+        status.className = "status error";
+        return;
+      }
+
+      const timestamp = new Date().toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+
+      btn.disabled = true;
+      status.textContent = "Saving...";
+      status.className = "status loading";
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, text, timestamp }),
+        });
+
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+        document.getElementById("name").value  = "";
+        document.getElementById("entry").value = "";
+        status.textContent = "Note saved!";
+        status.className = "status success";
+      } catch (err) {
+        status.textContent = "Error: " + err.message;
+        status.className = "status error";
+      } finally {
+        btn.disabled = false;
+        setTimeout(() => { status.textContent = ""; }, 4000);
+      }
+    }
+
+    document.getElementById("entry").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) submitNote();
+    });
+  </script>
+</body>
+</html>
